@@ -59,7 +59,7 @@ with tab1:
     with col2:
         abs_neg = st.number_input(f"Absorbance @ {lambda_neg} nm", min_value=0.0, format="%.3f")
 
-    if st.button("Analysis")
+    if st.button("Analysis"):
         if abs_neg > 0:
             ratio = abs_pos / abs_neg
             st.metric("Ratio", f"{ratio:.2f}")
