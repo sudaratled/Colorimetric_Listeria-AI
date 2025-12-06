@@ -3,10 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # ตั้งค่าหน้าเว็บ
-st.set_page_config(page_title="HNB LAMP Analyzer v2", layout="centered")
+st.set_page_config(page_title="LM Colorimetric Smart Rapid Analyzer", layout="centered")
 
-st.title("🧬 HNB LAMP Assay Analyzer (v2)")
-st.markdown("เครื่องมือวิเคราะห์ผล Positive/Negative จากค่าดูดกลืนแสง UV-Vis")
+st.title("LM Colorimetric Smart Rapid Analyzer")
+st.markdown(" Artificial Intelligence for Listeria monocytogenes Detection")
 
 # --- ส่วนตั้งค่า (Sidebar) ---
 st.sidebar.header("Settings")
@@ -48,18 +48,18 @@ def load_and_clean_data(file):
     return df
 
 # --- ส่วนแสดงผลหลัก ---
-tab1, tab2 = st.tabs(["📝 กรอกค่าเอง (Manual)", "📂 อัปโหลดไฟล์ (File Upload)"])
+tab1, tab2 = st.tabs(["📝 Value (Manual)", "📂 อัปโหลดไฟล์ (File Upload)"])
 
 # Mode 1: Manual
 with tab1:
-    st.subheader("คำนวณแบบป้อนค่าเอง")
+    st.subheader("Measurement")
     col1, col2 = st.columns(2)
     with col1:
         abs_pos = st.number_input(f"Absorbance @ {lambda_pos} nm", min_value=0.0, format="%.3f")
     with col2:
         abs_neg = st.number_input(f"Absorbance @ {lambda_neg} nm", min_value=0.0, format="%.3f")
 
-    if st.button("วิเคราะห์ผล (Calculate)"):
+    if st.button("Analysis")
         if abs_neg > 0:
             ratio = abs_pos / abs_neg
             st.metric("Ratio", f"{ratio:.2f}")
