@@ -97,10 +97,42 @@ def main_app():
         return h_hsv * 360, (r, g, b), center_img
 
     # --- Display Tabs ---
-    tab1, tab2, tab3 = st.tabs(["📂 File (UV-Vis)", "📷 Photo/Picture Analyzer", "📝 Customized"])
+    tab1, tab2, tab3 = st.tabs(["📷 Colorimetric Analysis by photo", "📂 File (UV-Vis)", "📝 Customized"])
 
-    # Tab 1: CSV
+  
+    # Tab 1: Image
     with tab1:
+        st.subheader("Colorimetric analysis")
+        input_method = st.radio("เลือกวิธีการนำรูปเข้า:", ["📸 Take photo (Open Camera)", "🖼️ Upload photo (Upload)"])
+        
+        img_file = None
+        if input_method == "📸 Take photo (Camera)":
+            img_file = st.camera_input("Take photo")
+        else:
+            img_file = st.file_uploader("Select Photo (.jpg, .png)", type=['jpg', 'jpeg', 'png'])
+
+        if img_file:
+            image = Image.open(img_file)
+            try:
+                image = ImageOps.exif_transpose(image) # Fix rotation
+            except:
+                pass
+            hue, rgb, crop = analyze_image_color(image)
+            
+            st.write("---")
+            c1, c2 = st.columns([1, 2])
+            with c1:
+                st.image(crop, caption="Point to Analyst")
+                st.color_picker("Reader", f"#{int(rgb[0]):02x}{int(rgb[1]):02x}{int(rgb[2]):02x}", disabled=True)
+            with c2:
+                st.metric("Hue Value", f"{hue:.1f}°")
+                st.progress(min(hue/360, 1.0))
+                if hue < hue_cutoff:
+                    st.success("### ✅ POSITIVE (Blue) as 1 pg/ul")
+                else:
+                    st.error("### ⛔ NEGATIVE (Violet) less than 1 pg/ul")
+  # Tab 2: CSV
+    with tab2:
         st.subheader("File Analysis (CSV or xlsx)")
         uploaded_file = st.file_uploader("Upload CSV", type=['csv', 'xlsx'])
         if uploaded_file:
@@ -131,38 +163,6 @@ def main_app():
                 except IndexError:
                     st.warning("No signal")
 
-    # Tab 2: Image
-    with tab2:
-        st.subheader("วิเคราะห์สีจากภาพถ่าย")
-        input_method = st.radio("เลือกวิธีการนำรูปเข้า:", ["📸 เปิดกล้องถ่าย (Camera)", "🖼️ อัปโหลดรูปจากเครื่อง (Upload)"])
-        
-        img_file = None
-        if input_method == "📸 เปิดกล้องถ่าย (Camera)":
-            img_file = st.camera_input("กดปุ่มเพื่อถ่ายภาพ")
-        else:
-            img_file = st.file_uploader("เลือกรูปภาพ (.jpg, .png)", type=['jpg', 'jpeg', 'png'])
-
-        if img_file:
-            image = Image.open(img_file)
-            try:
-                image = ImageOps.exif_transpose(image) # Fix rotation
-            except:
-                pass
-            hue, rgb, crop = analyze_image_color(image)
-            
-            st.write("---")
-            c1, c2 = st.columns([1, 2])
-            with c1:
-                st.image(crop, caption="จุดที่วิเคราะห์")
-                st.color_picker("สีที่อ่านได้", f"#{int(rgb[0]):02x}{int(rgb[1]):02x}{int(rgb[2]):02x}", disabled=True)
-            with c2:
-                st.metric("Hue Value", f"{hue:.1f}°")
-                st.progress(min(hue/360, 1.0))
-                if hue < hue_cutoff:
-                    st.success("### ✅ POSITIVE (Blue)")
-                else:
-                    st.error("### ⛔ NEGATIVE (Violet)")
-
     # Tab 3: Manual
     with tab3:
         st.write("โหมดเครื่องคิดเลข")
@@ -181,5 +181,6 @@ if st.session_state['logged_in']:
 else:
 
     login()
+
 
 
