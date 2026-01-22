@@ -6,40 +6,43 @@ import colorsys
 import numpy as np
 
 # ตั้งค่าหน้าเว็บ
-st.set_page_config(page_title="HNB LAMP Analyzer v3", layout="centered")
+st.set_page_config(page_title="HNB Analysis V.New Data", layout="centered")
 
-st.title("🧬 HNB LAMP Assay Analyzer (v3)")
-st.markdown("เครื่องมือวิเคราะห์ผล Positive/Negative จากค่าดูดกลืนแสง และ สีของภาพ")
+st.title("🧬 HNB LAMP Analyzer (New Dataset)")
+st.markdown("วิเคราะห์ผลจากไฟล์ข้อมูล HNB Update และภาพถ่าย")
 
-# --- ส่วนตั้งค่า (Sidebar) ---
+# --- 1. ตั้งค่า Parameter (นำค่าจาก Code ส่วนที่ 1 มาแก้ตรง value นี้) ---
 st.sidebar.header("⚙️ Settings (UV-Vis)")
-lambda_pos = st.sidebar.number_input("Wavelength Positive (nm)", value=650)
-lambda_neg = st.sidebar.number_input("Wavelength Negative (nm)", value=565)
+# ลองใส่ค่าประมาณการณ์จากข้อมูลชุดใหม่ (คุณสามารถแก้ได้ถ้าผล Run Code ส่วนที่ 1 เปลี่ยนไป)
+lambda_pos = st.sidebar.number_input("Wavelength Positive (nm)", value=650) 
+lambda_neg = st.sidebar.number_input("Wavelength Negative (nm)", value=565) 
 threshold = st.sidebar.number_input("Threshold Ratio (A_pos/A_neg)", value=1.0)
 
 st.sidebar.markdown("---")
 st.sidebar.header("⚙️ Settings (Image)")
-# ค่า Hue (0-360): สีฟ้า ~200-230, สีม่วง ~260-290
-hue_cutoff = st.sidebar.slider("Blue/Violet Cutoff (Hue Degree)", 0, 360, 245, help="ค่าจุดตัดระหว่างสีฟ้ากับสีม่วง")
+hue_cutoff = st.sidebar.slider("Blue/Violet Cutoff (Hue)", 0, 360, 245)
 
-# --- ฟังก์ชันสำหรับโหลดและคลีนไฟล์ CSV ---
+# --- 2. ฟังก์ชันอ่านไฟล์ที่อัปเกรดให้รองรับไฟล์ชุดใหม่ ---
 def load_and_clean_data(file):
     try:
+        # อ่านไฟล์โดยข้าม 2 บรรทัดแรก (ตามไฟล์ Pos1.csv)
         df = pd.read_csv(file, skiprows=2, encoding='utf-8')
     except UnicodeDecodeError:
         file.seek(0)
         df = pd.read_csv(file, skiprows=2, encoding='ISO-8859-1')
-    except Exception as e:
-        st.error(f"Error reading file format: {e}")
+    except Exception:
         return None
 
+    # จัดการชื่อ Column ให้มาตรฐาน
     if len(df.columns) >= 2:
+        # บังคับชื่อ 2 คอลัมน์แรก ส่วนที่เหลือช่างมัน
         clean_cols = ['Wavelength', 'Absorbance'] + list(df.columns[2:])
         df.columns = clean_cols
     else:
-        st.error("รูปแบบไฟล์ไม่ถูกต้อง: ไม่พบคอลัมน์ Wavelength/Absorbance")
+        st.error("Format ไฟล์ไม่ถูกต้อง")
         return None
 
+    # Clean Data: ลบบรรทัดที่มี // หรือไม่ใช่ตัวเลข
     df = df[~df['Wavelength'].astype(str).str.startswith('//')]
     df['Wavelength'] = pd.to_numeric(df['Wavelength'], errors='coerce')
     df['Absorbance'] = pd.to_numeric(df['Absorbance'], errors='coerce')
@@ -47,120 +50,93 @@ def load_and_clean_data(file):
     
     return df
 
-# --- ฟังก์ชันวิเคราะห์สีจากภาพ ---
+# --- 3. ฟังก์ชันวิเคราะห์ภาพ (เหมือนเดิม) ---
 def analyze_image_color(image):
-    # แปลงเป็น numpy array
     img_array = np.array(image)
-    
-    # ตัดขอบภาพออกเอาแค่ตรงกลาง (Center Crop 50%) เพื่อหลีกเลี่ยงพื้นหลัง
     h, w, _ = img_array.shape
     center_h, center_w = h // 2, w // 2
-    crop_h, crop_w = h // 4, w // 4
+    crop_h, crop_w = h // 6, w // 6 # Crop เล็กลงหน่อยเพื่อความแม่นยำ
     center_img = img_array[center_h - crop_h : center_h + crop_h, center_w - crop_w : center_w + crop_w]
     
-    # หาค่าเฉลี่ย RGB
-    avg_color_per_row = np.average(center_img, axis=0)
-    avg_rgb = np.average(avg_color_per_row, axis=0)
+    avg_rgb = np.average(np.average(center_img, axis=0), axis=0)
     r, g, b = avg_rgb
-    
-    # แปลง RGB (0-255) เป็น HSV (0-1) แล้วคูณ 360 เพื่อเป็นองศา
     h_hsv, s_hsv, v_hsv = colorsys.rgb_to_hsv(r/255, g/255, b/255)
-    hue_degree = h_hsv * 360
     
-    return hue_degree, (r, g, b), center_img
+    return h_hsv * 360, (r, g, b), center_img
 
-# --- ส่วนแสดงผลหลัก ---
-tab1, tab2, tab3 = st.tabs(["📝 กรอกค่า (Manual)", "📂 ไฟล์กราฟ (UV-Vis)", "📷 วิเคราะห์ภาพ (Photo)"])
+# --- 4. ส่วนแสดงผล ---
+tab1, tab2, tab3 = st.tabs(["📂 วิเคราะห์ไฟล์กราฟ", "📷 วิเคราะห์จากกล้อง", "📝 กรอกค่าเอง"])
 
-# Mode 1: Manual
 with tab1:
-    st.subheader("คำนวณแบบป้อนค่า Absorbance")
-    col1, col2 = st.columns(2)
-    with col1:
-        abs_pos = st.number_input(f"Absorbance @ {lambda_pos} nm", min_value=0.0, format="%.3f")
-    with col2:
-        abs_neg = st.number_input(f"Absorbance @ {lambda_neg} nm", min_value=0.0, format="%.3f")
-
-    if st.button("วิเคราะห์ผล (Calculate)", key="btn_manual"):
-        if abs_neg > 0:
-            ratio = abs_pos / abs_neg
-            st.metric("Ratio", f"{ratio:.2f}")
-            if ratio > threshold:
-                st.success(f"✅ Result: POSITIVE (Blue Color)")
-            else:
-                st.error(f"⛔ Result: NEGATIVE (Violet Color)")
-
-# Mode 2: File Upload
-with tab2:
-    st.subheader("วิเคราะห์จากไฟล์ CSV (UV-Vis)")
-    uploaded_file = st.file_uploader("เลือกไฟล์ CSV ที่ได้จากเครื่อง", type=['csv', 'xlsx'])
+    st.subheader("วิเคราะห์ผลจากไฟล์ CSV (HNB Update)")
+    uploaded_file = st.file_uploader("อัปโหลดไฟล์ CSV (เช่น Pos1.csv, Ne1.csv)", type=['csv', 'xlsx'])
     
-    if uploaded_file is not None:
-        try:
-            if uploaded_file.name.endswith('.csv'):
-                df = load_and_clean_data(uploaded_file)
-            else:
-                df = pd.read_excel(uploaded_file)
-                df.columns = ['Wavelength', 'Absorbance'] + list(df.columns[2:])
-            
-            if df is not None and not df.empty:
+    if uploaded_file:
+        if uploaded_file.name.endswith('.csv'):
+            df = load_and_clean_data(uploaded_file)
+        else:
+            df = pd.read_excel(uploaded_file) # เผื่อกรณี Excel
+        
+        if df is not None:
+            # หาค่า Absorbance ที่ความยาวคลื่นเป้าหมาย
+            try:
+                # ใช้ iloc หาแถวที่ wavelength ใกล้เคียงที่สุด
                 row_pos = df.iloc[(df['Wavelength'] - lambda_pos).abs().argsort()[:1]]
                 row_neg = df.iloc[(df['Wavelength'] - lambda_neg).abs().argsort()[:1]]
                 
-                if not row_pos.empty and not row_neg.empty:
-                    val_pos = row_pos['Absorbance'].values[0]
-                    val_neg = row_neg['Absorbance'].values[0]
-                    ratio_file = val_pos / val_neg if val_neg != 0 else 0
-                    
-                    st.line_chart(df.set_index('Wavelength')['Absorbance'])
-                    
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric(f"Abs @{lambda_pos}", f"{val_pos:.3f}")
-                    c2.metric(f"Abs @{lambda_neg}", f"{val_neg:.3f}")
-                    c3.metric("Ratio", f"{ratio_file:.2f}")
-                    
-                    st.divider()
-                    if ratio_file > threshold:
-                        st.success(f"### ✅ UV-Vis Result: POSITIVE")
-                    else:
-                        st.error(f"### ⛔ UV-Vis Result: NEGATIVE")
-        except Exception as e:
-            st.error(f"เกิดข้อผิดพลาด: {e}")
-
-# Mode 3: Image Analysis (New!)
-with tab3:
-    st.subheader("วิเคราะห์จากภาพถ่ายหลอดทดลอง")
-    st.info("💡 คำแนะนำ: ควรถ่ายภาพในที่สว่างพื้นหลังขาว และให้หลอดทดลองอยู่ตรงกลางภาพ")
-    
-    img_file = st.file_uploader("อัปโหลดรูปภาพ (jpg, png)", type=['jpg', 'jpeg', 'png'])
-    
-    if img_file is not None:
-        image = Image.open(img_file)
-        
-        # แสดงรูปต้นฉบับ
-        st.image(image, caption="รูปภาพต้นฉบับ", use_container_width=True)
-        
-        if st.button("วิเคราะห์สี (Analyze Color)"):
-            hue, rgb, crop_img = analyze_image_color(image)
-            
-            st.write("---")
-            col_img1, col_img2 = st.columns([1, 2])
-            
-            with col_img1:
-                st.image(crop_img, caption="พื้นที่วิเคราะห์ (กลางภาพ)")
-                # แสดงกล่องสีที่ตรวจจับได้
-                st.color_picker("สีเฉลี่ยที่ตรวจจับได้", f"#{int(rgb[0]):02x}{int(rgb[1]):02x}{int(rgb[2]):02x}", disabled=True)
-            
-            with col_img2:
-                st.metric("Detected Hue (เฉดสี)", f"{hue:.1f}°")
+                val_pos = row_pos['Absorbance'].values[0]
+                val_neg = row_neg['Absorbance'].values[0]
                 
-                # Logic การตัดสินผลจาก Hue
-                # Sky Blue (Pos) มักจะอยู่ที่ Hue < 245
-                # Violet (Neg) มักจะอยู่ที่ Hue > 245
+                # Plot Graph
+                st.line_chart(df.set_index('Wavelength')['Absorbance'])
                 
-                if hue < hue_cutoff:
-                    st.success("### ✅ Photo Result: POSITIVE")
-                    st.markdown(f"ตรวจพบโทน **สีฟ้า (Blue)** (Hue < {hue_cutoff})")
+                # Display Results
+                col1, col2, col3 = st.columns(3)
+                col1.metric(f"Abs @{lambda_pos:.0f}nm", f"{val_pos:.3f}")
+                col2.metric(f"Abs @{lambda_neg:.0f}nm", f"{val_neg:.3f}")
+                
+                ratio = val_pos / val_neg if val_neg != 0 else 0
+                col3.metric("Ratio (Pos/Neg)", f"{ratio:.2f}")
+                
+                st.divider()
+                
+                # Logic การตัดสินผล
+                if ratio > threshold:
+                    st.success(f"### ✅ ผล: POSITIVE (สีฟ้า)")
+                    st.caption(f"กราฟสูงขึ้นที่ {lambda_pos}nm ชัดเจน")
                 else:
-                    st.error("### ⛔ Photo Result: NEGATIVE")
-                    st.markdown(f"ตรวจพบโทน **สีม่วง (Violet)** (Hue > {hue_cutoff})")
+                    st.error(f"### ⛔ ผล: NEGATIVE (สีม่วง)")
+                    st.caption(f"กราฟสูงขึ้นที่ {lambda_neg}nm หรือ Ratio ต่ำ")
+                    
+            except IndexError:
+                st.warning("ไม่พบช่วงความยาวคลื่นที่ต้องการในไฟล์นี้")
+
+with tab2:
+    st.subheader("ถ่ายภาพเพื่อวิเคราะห์สี")
+    img_file = st.camera_input("ถ่ายภาพหลอดทดลอง (วางบนพื้นขาว)")
+    
+    if img_file:
+        image = Image.open(img_file)
+        hue, rgb, crop = analyze_image_color(image)
+        
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            st.image(crop, caption="จุดที่วิเคราะห์")
+            st.color_picker("สีที่อ่านได้", f"#{int(rgb[0]):02x}{int(rgb[1]):02x}{int(rgb[2]):02x}", disabled=True)
+        with c2:
+            st.metric("Hue Value", f"{hue:.1f}°")
+            if hue < hue_cutoff:
+                st.success("### ✅ POSITIVE (Blue Tone)")
+            else:
+                st.error("### ⛔ NEGATIVE (Violet Tone)")
+
+with tab3:
+    st.write("โหมดคำนวณมือ (Manual Calculator)")
+    m_pos = st.number_input("Abs Positive", 0.0)
+    m_neg = st.number_input("Abs Negative", 0.0)
+    if st.button("Calculate"):
+        if m_neg > 0:
+            r = m_pos/m_neg
+            st.info(f"Ratio = {r:.2f}")
+            if r > threshold: st.success("Positive") 
+            else: st.error("Negative")
