@@ -7,7 +7,7 @@ import numpy as np
 import time
 
 # --- 1. ตั้งค่าหน้าเว็บ (ต้องอยู่บรรทัดแรกสุด) ---
-st.set_page_config(page_title="HNB LAMP Analyzer v6", layout="centered")
+st.set_page_config(page_title="Listeria monocytogenes (LM) Colorimetric Smart Rapid  Analyzer v6", layout="centered")
 
 # --- 2. กำหนด Username และ Password ---
 # ถ้าใช้บน Cloud แนะนำให้ใช้ st.secrets แต่ถ้ารันเล่นๆ ใช้แบบนี้ได้ครับ
@@ -16,7 +16,7 @@ try:
     AUTHORIZED_PASS = st.secrets["app_password"]
 except:
     AUTHORIZED_USER = "admin"
-    AUTHORIZED_PASS = "1234"
+    AUTHORIZED_PASS = "sudarat"
 
 # --- 3. ระบบตรวจสอบการ Login ---
 if 'logged_in' not in st.session_state:
@@ -24,7 +24,7 @@ if 'logged_in' not in st.session_state:
 
 def login():
     st.title("🔒 Login Required")
-    st.markdown("กรุณาเข้าสู่ระบบเพื่อใช้งาน HNB LAMP Analyzer")
+    st.markdown("LOGIN to Listeria monocytogenes (LM) Colorimetric Smart Rapid  Analyzer v6")
     
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -195,4 +195,5 @@ def main_app():
 if st.session_state['logged_in']:
     main_app()
 else:
+
     login()
