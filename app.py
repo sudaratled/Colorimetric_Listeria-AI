@@ -40,7 +40,7 @@ def login():
             time.sleep(0.5)
             st.rerun()
         else:
-            st.error("Username หรือ Password ไม่ถูกต้อง")
+            st.error("Username หรือ Password are not corrected")
 
 def logout():
     st.session_state['logged_in'] = False
@@ -55,8 +55,8 @@ def main_app():
             logout()
         st.divider()
 
-    st.title("🧬 HNB LAMP Analyzer (Fixed)")
-    st.markdown("วิเคราะห์ผลจากไฟล์ CSV หรือ รูปถ่าย (รองรับ Upload)")
+    st.title("🧬 Listeria monocytogenes (LM) Colorimetric Smart Rapid  Analyzer v6")
+    st.markdown("Analysis File (CSV) or Photo (Upload)")
 
     # --- Settings ---
     st.sidebar.header("⚙️ Settings (UV-Vis)")
@@ -113,8 +113,8 @@ def main_app():
 
     # Tab 1: CSV Analysis
     with tab1:
-        st.subheader("วิเคราะห์ผลจากไฟล์ CSV")
-        uploaded_file = st.file_uploader("อัปโหลดไฟล์ CSV", type=['csv', 'xlsx'])
+        st.subheader("File (CSV)")
+        uploaded_file = st.file_uploader("Upload File (CSV or xlsx)", type=['csv', 'xlsx'])
         if uploaded_file:
             if uploaded_file.name.endswith('.csv'):
                 df = load_and_clean_data(uploaded_file)
@@ -141,18 +141,18 @@ def main_app():
                     else:
                         st.error(f"### ⛔ ผล: NEGATIVE (Violet Signal)")
                 except IndexError:
-                    st.warning("ไม่พบช่วงความยาวคลื่นที่ต้องการ")
+                    st.warning("No signal")
 
     # Tab 2: Image Analysis
     with tab2:
-        st.subheader("วิเคราะห์สีจากภาพถ่าย")
-        input_method = st.radio("เลือกวิธีการนำรูปเข้า:", ["📸 เปิดกล้องถ่าย (Camera)", "🖼️ อัปโหลดรูปจากเครื่อง (Upload)"])
+        st.subheader("Image Analysis")
+        input_method = st.radio("Input:", ["📸 Take photo (Camera)", "🖼️ Library photo (Upload)"])
         
         img_file = None
-        if input_method == "📸 เปิดกล้องถ่าย (Camera)":
-            img_file = st.camera_input("กดปุ่มเพื่อถ่ายภาพ")
+        if input_method == "📸 Take photo (Camera)":
+            img_file = st.camera_input("Take photo")
         else:
-            img_file = st.file_uploader("เลือกรูปภาพ (.jpg, .png)", type=['jpg', 'jpeg', 'png'])
+            img_file = st.file_uploader("Slelect Photo (.jpg, .png)", type=['jpg', 'jpeg', 'png'])
 
         if img_file:
             image = Image.open(img_file)
@@ -166,7 +166,7 @@ def main_app():
             st.write("---")
             c1, c2 = st.columns([1, 2])
             with c1:
-                st.image(crop, caption="จุดที่วิเคราะห์ (Center Crop)")
+                st.image(crop, caption="Center Crop")
                 st.color_picker("สีที่อ่านได้", f"#{int(rgb[0]):02x}{int(rgb[1]):02x}{int(rgb[2]):02x}", disabled=True)
             with c2:
                 st.metric("Hue Value", f"{hue:.1f}°")
@@ -174,10 +174,10 @@ def main_app():
                 
                 if hue < hue_cutoff:
                     st.success("### ✅ POSITIVE (Blue)")
-                    st.caption("ตรวจพบโทนสีฟ้า")
+                    st.caption("Positive Result as 1 pg/ul")
                 else:
                     st.error("### ⛔ NEGATIVE (Violet)")
-                    st.caption("ตรวจพบโทนสีม่วง")
+                    st.caption("Negative result less than 1 pg/ul")
 
     # Tab 3: Manual Calculator
     with tab3:
