@@ -7,12 +7,12 @@ import numpy as np
 import time
 
 # --- 1. ตั้งค่าหน้าเว็บ (ต้องอยู่บรรทัดแรกสุด) ---
-st.set_page_config(page_title="Listeria monocytogenes (LM) Colorimetric Smart Rapid Analyzer v5", layout="centered")
+st.set_page_config(page_title="HNB LAMP Analyzer v5", layout="centered")
 
 # --- 2. กำหนด Username และ Password ที่ต้องการ ---
 # ⚠️ ข้อควรระวัง: การใส่รหัสใน Code โดยตรงไม่ปลอดภัย 100% ถ้าใช้จริงจังควรใช้ Streamlit Secrets
 AUTHORIZED_USER = "admin"
-AUTHORIZED_PASS = "sudarat"
+AUTHORIZED_PASS = "1234"
 
 # --- 3. ระบบตรวจสอบการ Login (Session State) ---
 if 'logged_in' not in st.session_state:
@@ -20,7 +20,7 @@ if 'logged_in' not in st.session_state:
 
 def login():
     st.title("🔒 Login Required")
-    st.markdown("Please Login to Listeria monocytogenes (LM) Colorimetric Smart Rapid Analyzer")
+    st.markdown("กรุณาเข้าสู่ระบบเพื่อใช้งาน HNB LAMP Analyzer")
     
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
@@ -32,7 +32,7 @@ def login():
             time.sleep(0.5)
             st.rerun() # รีเฟรชหน้าเพื่อเข้าสู่โปรแกรมหลัก
         else:
-            st.error("Username or Password are not corrected")
+            st.error("Username หรือ Password ไม่ถูกต้อง")
 
 def logout():
     st.session_state['logged_in'] = False
@@ -47,8 +47,8 @@ def main_app():
             logout()
         st.divider()
 
-    st.title("🧬 Listeria monocytogenes (LM) Colorimetric Smart Rapid Analyzer")
-    st.markdown("Analysis CSV or Photo (Upload file)")
+    st.title("🧬 HNB LAMP Analyzer (Secured)")
+    st.markdown("วิเคราะห์ผลจากไฟล์ CSV หรือ รูปถ่าย (รองรับ Upload)")
 
     # --- Settings ---
     st.sidebar.header("⚙️ Settings (UV-Vis)")
@@ -97,44 +97,12 @@ def main_app():
         return h_hsv * 360, (r, g, b), center_img
 
     # --- Display Tabs ---
-    tab1, tab2, tab3 = st.tabs(["📷 Colorimetric Analysis by photo", "📂 File (UV-Vis)", "📝 Customized"])
+    tab1, tab2, tab3 = st.tabs(["📂 ไฟล์กราฟ (UV-Vis)", "📷 วิเคราะห์รูปภาพ", "📝 กรอกค่าเอง"])
 
-  
-    # Tab 1: Image
+    # Tab 1: CSV
     with tab1:
-        st.subheader("Colorimetric analysis")
-        input_method = st.radio("เลือกวิธีการนำรูปเข้า:", ["📸 Take photo (Open Camera)", "🖼️ Upload photo (Upload)"])
-        
-        img_file = None
-        if input_method == "📸 Take photo (Camera)":
-            img_file = st.camera_input("Take photo")
-        else:
-            img_file = st.file_uploader("Select Photo (.jpg, .png)", type=['jpg', 'jpeg', 'png'])
-
-        if img_file:
-            image = Image.open(img_file)
-            try:
-                image = ImageOps.exif_transpose(image) # Fix rotation
-            except:
-                pass
-            hue, rgb, crop = analyze_image_color(image)
-            
-            st.write("---")
-            c1, c2 = st.columns([1, 2])
-            with c1:
-                st.image(crop, caption="Point to Analyst")
-                st.color_picker("Reader", f"#{int(rgb[0]):02x}{int(rgb[1]):02x}{int(rgb[2]):02x}", disabled=True)
-            with c2:
-                st.metric("Hue Value", f"{hue:.1f}°")
-                st.progress(min(hue/360, 1.0))
-                if hue < hue_cutoff:
-                    st.success("### ✅ POSITIVE (Blue) as 1 pg/ul")
-                else:
-                    st.error("### ⛔ NEGATIVE (Violet) less than 1 pg/ul")
-  # Tab 2: CSV
-    with tab2:
-        st.subheader("File Analysis (CSV or xlsx)")
-        uploaded_file = st.file_uploader("Upload CSV", type=['csv', 'xlsx'])
+        st.subheader("วิเคราะห์ผลจากไฟล์ CSV")
+        uploaded_file = st.file_uploader("อัปโหลดไฟล์ CSV", type=['csv', 'xlsx'])
         if uploaded_file:
             if uploaded_file.name.endswith('.csv'):
                 df = load_and_clean_data(uploaded_file)
@@ -157,11 +125,43 @@ def main_app():
                     c3.metric("Ratio", f"{ratio:.2f}")
                     st.divider()
                     if ratio > threshold:
-                        st.success(f"### ✅ Result: POSITIVE (Blue Signal)")
+                        st.success(f"### ✅ ผล: POSITIVE (Blue Signal)")
                     else:
-                        st.error(f"### ⛔ Result: NEGATIVE (Violet Signal)")
+                        st.error(f"### ⛔ ผล: NEGATIVE (Violet Signal)")
                 except IndexError:
-                    st.warning("No signal")
+                    st.warning("ไม่พบช่วงความยาวคลื่นที่ต้องการ")
+
+    # Tab 2: Image
+    with tab2:
+        st.subheader("วิเคราะห์สีจากภาพถ่าย")
+        input_method = st.radio("เลือกวิธีการนำรูปเข้า:", ["📸 เปิดกล้องถ่าย (Camera)", "🖼️ อัปโหลดรูปจากเครื่อง (Upload)"])
+        
+        img_file = None
+        if input_method == "📸 เปิดกล้องถ่าย (Camera)":
+            img_file = st.camera_input("กดปุ่มเพื่อถ่ายภาพ")
+        else:
+            img_file = st.file_uploader("เลือกรูปภาพ (.jpg, .png)", type=['jpg', 'jpeg', 'png'])
+
+        if img_file:
+            image = Image.open(img_file)
+            try:
+                image = ImageOps.exif_transpose(image) # Fix rotation
+            except:
+                pass
+            hue, rgb, crop = analyze_image_color(image)
+            
+            st.write("---")
+            c1, c2 = st.columns([1, 2])
+            with c1:
+                st.image(crop, caption="จุดที่วิเคราะห์")
+                st.color_picker("สีที่อ่านได้", f"#{int(rgb[0]):02x}{int(rgb[1]):02x}{int(rgb[2]):02x}", disabled=True)
+            with c2:
+                st.metric("Hue Value", f"{hue:.1f}°")
+                st.progress(min(hue/360, 1.0))
+                if hue < hue_cutoff:
+                    st.success("### ✅ POSITIVE (Blue)")
+                else:
+                    st.error("### ⛔ NEGATIVE (Violet)")
 
     # Tab 3: Manual
     with tab3:
@@ -179,8 +179,4 @@ def main_app():
 if st.session_state['logged_in']:
     main_app()
 else:
-
     login()
-
-
-
