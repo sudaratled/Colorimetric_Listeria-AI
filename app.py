@@ -7,20 +7,28 @@ import numpy as np
 import time
 
 # --- 1. ตั้งค่าหน้าเว็บ (ต้องอยู่บรรทัดแรกสุด) ---
-st.set_page_config(page_title="HNB LAMP Analyzer v5", layout="centered")
+st.set_page_config(page_title="HNB LAMP Analyzer v6", layout="centered")
 
-# --- 2. กำหนด Username และ Password ที่ต้องการ ---
-# ⚠️ ข้อควรระวัง: การใส่รหัสใน Code โดยตรงไม่ปลอดภัย 100% ถ้าใช้จริงจังควรใช้ Streamlit Secrets
-AUTHORIZED_USER = "admin"
-AUTHORIZED_PASS = "1234"
+# --- 2. กำหนด Username และ Password ---
+# ถ้าใช้บน Cloud แนะนำให้ใช้ st.secrets แต่ถ้ารันเล่นๆ ใช้แบบนี้ได้ครับ
+try:
+    AUTHORIZED_USER = st.secrets["app_username"]
+    AUTHORIZED_PASS = st.secrets["app_password"]
+except:
+    AUTHORIZED_USER = "admin"
+    AUTHORIZED_PASS = "1234"
 
-# --- 3. ระบบตรวจสอบการ Login (Session State) ---
+# --- 3. ระบบตรวจสอบการ Login ---
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
 
 def login():
     st.title("🔒 Login Required")
     st.markdown("กรุณาเข้าสู่ระบบเพื่อใช้งาน HNB LAMP Analyzer")
+    
+    col1, col2 = st.columns([1, 2])
+    with col1:
+        st.info("Default User: admin\nDefault Pass: 1234")
     
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
@@ -30,7 +38,7 @@ def login():
             st.session_state['logged_in'] = True
             st.success("Login สำเร็จ!")
             time.sleep(0.5)
-            st.rerun() # รีเฟรชหน้าเพื่อเข้าสู่โปรแกรมหลัก
+            st.rerun()
         else:
             st.error("Username หรือ Password ไม่ถูกต้อง")
 
@@ -38,16 +46,16 @@ def logout():
     st.session_state['logged_in'] = False
     st.rerun()
 
-# --- 4. ฟังก์ชันหลักของโปรแกรม (เหมือนเดิม) ---
+# --- 4. ฟังก์ชันหลักของโปรแกรม ---
 def main_app():
-    # ปุ่ม Logout มุมขวาบน
+    # Sidebar: Logout & Settings
     with st.sidebar:
-        st.write(f"ผู้ใช้งาน: **{AUTHORIZED_USER}**")
+        st.write(f"User: **{AUTHORIZED_USER}**")
         if st.button("ออกจากระบบ (Logout)"):
             logout()
         st.divider()
 
-    st.title("🧬 HNB LAMP Analyzer (Secured)")
+    st.title("🧬 HNB LAMP Analyzer (Fixed)")
     st.markdown("วิเคราะห์ผลจากไฟล์ CSV หรือ รูปถ่าย (รองรับ Upload)")
 
     # --- Settings ---
@@ -60,7 +68,7 @@ def main_app():
     st.sidebar.header("⚙️ Settings (Image)")
     hue_cutoff = st.sidebar.slider("Blue/Violet Cutoff (Hue)", 0, 360, 245)
 
-    # --- Helper Functions ---
+    # --- Helper Function 1: Load CSV ---
     def load_and_clean_data(file):
         try:
             df = pd.read_csv(file, skiprows=2, encoding='utf-8')
@@ -83,7 +91,11 @@ def main_app():
         df = df.dropna(subset=['Wavelength', 'Absorbance'])
         return df
 
+    # --- Helper Function 2: Analyze Image (Fixed Error Here!) ---
     def analyze_image_color(image):
+        # 🟢 FIX: แปลงภาพเป็น RGB เสมอ เพื่อตัดค่า Alpha ทิ้ง (ป้องกัน Error: too many values to unpack)
+        image = image.convert('RGB')
+        
         img_array = np.array(image)
         h, w, _ = img_array.shape
         center_h, center_w = h // 2, w // 2
@@ -91,7 +103,7 @@ def main_app():
         center_img = img_array[center_h - crop_h : center_h + crop_h, center_w - crop_w : center_w + crop_w]
         
         avg_rgb = np.average(np.average(center_img, axis=0), axis=0)
-        r, g, b = avg_rgb
+        r, g, b = avg_rgb  # ตรงนี้จะไม่ Error แล้วเพราะมีแค่ 3 ค่าแน่นอน
         h_hsv, s_hsv, v_hsv = colorsys.rgb_to_hsv(r/255, g/255, b/255)
         
         return h_hsv * 360, (r, g, b), center_img
@@ -99,7 +111,7 @@ def main_app():
     # --- Display Tabs ---
     tab1, tab2, tab3 = st.tabs(["📂 ไฟล์กราฟ (UV-Vis)", "📷 วิเคราะห์รูปภาพ", "📝 กรอกค่าเอง"])
 
-    # Tab 1: CSV
+    # Tab 1: CSV Analysis
     with tab1:
         st.subheader("วิเคราะห์ผลจากไฟล์ CSV")
         uploaded_file = st.file_uploader("อัปโหลดไฟล์ CSV", type=['csv', 'xlsx'])
@@ -131,7 +143,7 @@ def main_app():
                 except IndexError:
                     st.warning("ไม่พบช่วงความยาวคลื่นที่ต้องการ")
 
-    # Tab 2: Image
+    # Tab 2: Image Analysis
     with tab2:
         st.subheader("วิเคราะห์สีจากภาพถ่าย")
         input_method = st.radio("เลือกวิธีการนำรูปเข้า:", ["📸 เปิดกล้องถ่าย (Camera)", "🖼️ อัปโหลดรูปจากเครื่อง (Upload)"])
@@ -148,22 +160,26 @@ def main_app():
                 image = ImageOps.exif_transpose(image) # Fix rotation
             except:
                 pass
+            
             hue, rgb, crop = analyze_image_color(image)
             
             st.write("---")
             c1, c2 = st.columns([1, 2])
             with c1:
-                st.image(crop, caption="จุดที่วิเคราะห์")
+                st.image(crop, caption="จุดที่วิเคราะห์ (Center Crop)")
                 st.color_picker("สีที่อ่านได้", f"#{int(rgb[0]):02x}{int(rgb[1]):02x}{int(rgb[2]):02x}", disabled=True)
             with c2:
                 st.metric("Hue Value", f"{hue:.1f}°")
                 st.progress(min(hue/360, 1.0))
+                
                 if hue < hue_cutoff:
                     st.success("### ✅ POSITIVE (Blue)")
+                    st.caption("ตรวจพบโทนสีฟ้า")
                 else:
                     st.error("### ⛔ NEGATIVE (Violet)")
+                    st.caption("ตรวจพบโทนสีม่วง")
 
-    # Tab 3: Manual
+    # Tab 3: Manual Calculator
     with tab3:
         st.write("โหมดเครื่องคิดเลข")
         m_pos = st.number_input("Abs Positive", 0.0)
