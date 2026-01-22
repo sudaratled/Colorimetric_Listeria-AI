@@ -6,10 +6,10 @@ import colorsys
 import numpy as np
 
 # ตั้งค่าหน้าเว็บ
-st.set_page_config(page_title="🧬LM Colorimetric Smart Rapid: Analysis platform🧬", layout="centered")
+st.set_page_config(page_title="HNB LAMP Analyzer v3", layout="centered")
 
-st.title("🧬LM Colorimetric Smart Rapid: Analysis platform🧬")
-st.markdown("Colorimetric Tool for Analysis of L. monocytogenes detection")
+st.title("🧬 HNB LAMP Assay Analyzer (v3)")
+st.markdown("เครื่องมือวิเคราะห์ผล Positive/Negative จากค่าดูดกลืนแสง และ สีของภาพ")
 
 # --- ส่วนตั้งค่า (Sidebar) ---
 st.sidebar.header("⚙️ Settings (UV-Vis)")
@@ -70,7 +70,7 @@ def analyze_image_color(image):
     return hue_degree, (r, g, b), center_img
 
 # --- ส่วนแสดงผลหลัก ---
-tab1, tab2, tab3 = st.tabs(["📝 Value (Manual)", "📂 Upload file (UV-Vis)", "📷 Photo Analysis (Photo)"])
+tab1, tab2, tab3 = st.tabs(["📝 กรอกค่า (Manual)", "📂 ไฟล์กราฟ (UV-Vis)", "📷 วิเคราะห์ภาพ (Photo)"])
 
 # Mode 1: Manual
 with tab1:
@@ -81,7 +81,7 @@ with tab1:
     with col2:
         abs_neg = st.number_input(f"Absorbance @ {lambda_neg} nm", min_value=0.0, format="%.3f")
 
-    if st.button("Analysis (Calculate)", key="btn_manual"):
+    if st.button("วิเคราะห์ผล (Calculate)", key="btn_manual"):
         if abs_neg > 0:
             ratio = abs_pos / abs_neg
             st.metric("Ratio", f"{ratio:.2f}")
@@ -92,7 +92,7 @@ with tab1:
 
 # Mode 2: File Upload
 with tab2:
-    st.subheader("Upload file CSV (UV-Vis)")
+    st.subheader("วิเคราะห์จากไฟล์ CSV (UV-Vis)")
     uploaded_file = st.file_uploader("เลือกไฟล์ CSV ที่ได้จากเครื่อง", type=['csv', 'xlsx'])
     
     if uploaded_file is not None:
@@ -129,10 +129,10 @@ with tab2:
 
 # Mode 3: Image Analysis (New!)
 with tab3:
-    st.subheader("Photo Analysis")
+    st.subheader("วิเคราะห์จากภาพถ่ายหลอดทดลอง")
     st.info("💡 คำแนะนำ: ควรถ่ายภาพในที่สว่างพื้นหลังขาว และให้หลอดทดลองอยู่ตรงกลางภาพ")
     
-    img_file = st.file_uploader("Upload (jpg, png)", type=['jpg', 'jpeg', 'png'])
+    img_file = st.file_uploader("อัปโหลดรูปภาพ (jpg, png)", type=['jpg', 'jpeg', 'png'])
     
     if img_file is not None:
         image = Image.open(img_file)
