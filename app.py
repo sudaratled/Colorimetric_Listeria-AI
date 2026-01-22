@@ -28,7 +28,7 @@ def login():
     
     col1, col2 = st.columns([1, 2])
     with col1:
-        st.info("Default User: admin\nDefault Pass: 1234")
+        st.info("Username and Password are installed")
     
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
@@ -36,7 +36,7 @@ def login():
     if st.button("เข้าสู่ระบบ (Login)"):
         if username == AUTHORIZED_USER and password == AUTHORIZED_PASS:
             st.session_state['logged_in'] = True
-            st.success("Login สำเร็จ!")
+            st.success("Login SUCCESS!")
             time.sleep(0.5)
             st.rerun()
         else:
@@ -82,7 +82,7 @@ def main_app():
             clean_cols = ['Wavelength', 'Absorbance'] + list(df.columns[2:])
             df.columns = clean_cols
         else:
-            st.error("Format ไฟล์ไม่ถูกต้อง")
+            st.error("Format is not corrected")
             return None
 
         df = df[~df['Wavelength'].astype(str).str.startswith('//')]
@@ -109,7 +109,7 @@ def main_app():
         return h_hsv * 360, (r, g, b), center_img
 
     # --- Display Tabs ---
-    tab1, tab2, tab3 = st.tabs(["📂 ไฟล์กราฟ (UV-Vis)", "📷 วิเคราะห์รูปภาพ", "📝 กรอกค่าเอง"])
+    tab1, tab2, tab3 = st.tabs(["📂 File Upload (UV-Vis)", "📷 Colorimetric analysis", "📝 customized"])
 
     # Tab 1: CSV Analysis
     with tab1:
@@ -195,5 +195,6 @@ def main_app():
 if st.session_state['logged_in']:
     main_app()
 else:
+
 
     login()
