@@ -106,7 +106,7 @@ def main_app():
         if uploaded_file:
             if uploaded_file.name.endswith('.csv'):
                 df = load_and_clean_data(uploaded_file)
-            el
+            else
                 df = pd.read_excel(uploaded_file)
             
             if df is not None:
@@ -181,3 +181,4 @@ if st.session_state['logged_in']:
 else:
 
     login()
+
